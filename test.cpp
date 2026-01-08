@@ -295,7 +295,7 @@ int main(int argc, char **argv) {
     benchmark::Initialize(&argc, argv);
 
     // Configuration: sizes, types, and structures
-    const std::vector<int> sizes = {1 << 20};
+    const std::vector<int> sizes = {1 << 10, 1 << 12, 1 << 14, 1 << 16, 1 << 18, 1 << 20, 1 << 22};
 
     const std::vector<std::string> types = {"int", "string"};
 
