@@ -33,6 +33,7 @@ target_link_libraries(mybenchmark
         PRIVATE
         benchmark::benchmark
         Boost::headers
+        Boost::container
         pthread
 )
 

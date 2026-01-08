@@ -1,15 +1,17 @@
-#include <benchmark/benchmark.h>
-#include "plf_list.h"
-#include "plf_colony.h"
 #include <list>
-#include "utils.h"
 #include <vector>
 #include <algorithm>
 #include <string>
 #include <deque>
 //#include <flat_set>
+
 #include <boost/container/flat_set.hpp>
+#include <benchmark/benchmark.h>
+
+#include "utils.h"
 #include "unordered_dense.h"
+#include "plf_list.h"
+#include "plf_colony.h"
 
 enum class Op {
     InsertLast,
