@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <string>
 #include <deque>
-#include <flat_set>
+//#include <flat_set>
 #include <boost/container/flat_set.hpp>
 #include "unordered_dense.h"
 
@@ -29,10 +29,10 @@ template<typename T>
 Workload<T> make_workload(size_t n_ops, uint32_t seed = 42) {
     const std::vector<OpSpec<Op>> op_dist({
                                                   {Op::InsertLast,  40},
-                                                  {Op::Find,        0},
-                                                  {Op::RemoveByKey, 20},
+                                                  {Op::Find,        20},
+                                                  {Op::RemoveByKey, 15},
                                                   {Op::RemoveLast,  20},
-                                                  {Op::Iterate,     20}
+                                                  {Op::Iterate,     5}
                                           });
 
     Workload<T> w;
@@ -183,10 +183,10 @@ run_list_benchmark<plf::colony<std::string>, std::string>(benchmark::State &stat
     }
 }
 
-template<typename List, typename T>
+template<typename Set, typename T>
 void run_tree_benchmark(benchmark::State &state, const Workload<T> &w) {
     for (auto _: state) {
-        List lst;
+        Set lst;
 
         for (size_t i = 0; i < w.ops.size(); ++i) {
             const T &val = w.values[i];
@@ -225,16 +225,62 @@ void run_tree_benchmark(benchmark::State &state, const Workload<T> &w) {
     }
 }
 
+template<typename Map, typename T>
+void run_map_benchmark(benchmark::State &state, const Workload<T> &w) {
+    for (auto _: state) {
+        Map lst;
+
+        for (size_t i = 0; i < w.ops.size(); ++i) {
+            const T &val = w.values[i];
+
+            switch (w.ops[i]) {
+                case Op::InsertLast:
+                    benchmark::DoNotOptimize(lst.emplace(val, val));
+                    break;
+
+                case Op::Find:
+                    benchmark::DoNotOptimize(lst.find(val));
+                    break;
+
+                case Op::RemoveLast:
+                    if (!lst.empty()) {
+                        auto it = --lst.end();
+                        benchmark::DoNotOptimize(lst.erase(it));
+                    }
+                    break;
+
+                case Op::RemoveByKey: {
+                    benchmark::DoNotOptimize(lst.erase(val));
+                    break;
+                }
+                case Op::Iterate: {
+                    for (auto const &it: lst)
+                        benchmark::DoNotOptimize(it);
+                }
+                default:;
+            }
+        }
+
+        benchmark::ClobberMemory();
+    }
+}
+
 template<typename List, typename T>
 static void BM_Container_list(benchmark::State &state) {
     const auto w = make_workload<T>(state.range(0));
     run_list_benchmark<List, T>(state, w);
 }
 
-template<typename List, typename T>
+template<typename Set, typename T>
 static void BM_Container_set(benchmark::State &state) {
     const auto w = make_workload<T>(state.range(0));
-    run_tree_benchmark<List, T>(state, w);
+    run_tree_benchmark<Set, T>(state, w);
+}
+
+template<typename Map, typename T>
+static void BM_Container_map(benchmark::State &state) {
+    const auto w = make_workload<T>(state.range(0));
+    run_map_benchmark<Map, T>(state, w);
 }
 
 // Structure definitions for cleaner registration
@@ -272,18 +318,20 @@ int main(int argc, char **argv) {
             {"std::set",
                     BM_Container_set<std::set<int>, int>,
                     BM_Container_set<std::set<std::string>, std::string>},
-            {"std::flat_set",
-                    BM_Container_set<std::flat_set<int>, int>,
-                    BM_Container_set<std::flat_set<std::string>, std::string>},
+//            {"std::flat_set",
+//                    BM_Container_set<std::flat_set<int>, int>,
+//                    BM_Container_set<std::flat_set<std::string>, std::string>},
             {"boost::container::flat_set",
                     BM_Container_set<boost::container::flat_set<int>, int>,
                     BM_Container_set<boost::container::flat_set<std::string>, std::string>},
             {"ankerl::unordered_dense::set",
                     BM_Container_set<ankerl::unordered_dense::set<int>, int>,
                     BM_Container_set<ankerl::unordered_dense::set<std::string>, std::string>},
+            {"ankerl::unordered_dense::map",
+                    BM_Container_map<ankerl::unordered_dense::map<int, int>, int>,
+                    BM_Container_map<ankerl::unordered_dense::map<std::string, std::string>, std::string>},
     };
 
-    // Register all combinations: type -> size -> structure
     for (const auto &type: types) {
         for (int size: sizes) {
             std::string prefix = "type:" + type + "/size:" + std::to_string(size) + "/";
